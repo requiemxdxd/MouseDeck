@@ -1,11 +1,13 @@
 # MouseDeck `v0.1 beta`
 
-[![Windows 11](https://img.shields.io/badge/Windows-11%20x64-0078D6?style=flat-square&logo=windows11)](https://github.com)
+[![Release](https://img.shields.io/github/v/release/requiemxdxd/MouseDeck?include_prereleases&style=flat-square&color=4CC38A)](https://github.com/requiemxdxd/MouseDeck/releases)
+[![Build & Test](https://img.shields.io/github/actions/workflow/status/requiemxdxd/MouseDeck/release.yml?branch=main&style=flat-square&label=build%20%26%20tests)](https://github.com/requiemxdxd/MouseDeck/actions)
+[![Downloads](https://img.shields.io/github/downloads/requiemxdxd/MouseDeck/total?style=flat-square&color=0078D6)](https://github.com/requiemxdxd/MouseDeck/releases)
+[![Windows 11](https://img.shields.io/badge/Windows-11%20x64-0078D6?style=flat-square&logo=windows11)](https://github.com/requiemxdxd/MouseDeck/releases)
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4?style=flat-square&logo=dotnet)](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
-[![Version](https://img.shields.io/badge/version-0.1%20beta-4CC38A?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/license-MIT-ededed?style=flat-square)](LICENSE)
 
-> **made by requiemsystems**
+> **made by requiemsystems** — **[Download from Releases](https://github.com/requiemxdxd/MouseDeck/releases)** · **[Request Device Support](https://github.com/requiemxdxd/MouseDeck/issues/new?template=device-support.yml)** · **[Report a Bug](https://github.com/requiemxdxd/MouseDeck/issues/new?template=bug-report.yml)**
 
 A lightweight, native Windows 11 taskbar flyout for wireless & gaming mice.  
 Monitor real-time battery percentage, voltage, active discharge ETA, and CC-CV charging ETA right from your taskbar — and tune DPI, polling rate (up to 8K Hz), LOD, Motion Sync, debounce, and per-app profiles without bloated vendor suites running in the background.
@@ -50,7 +52,7 @@ MouseDeck uses a multi-tier protocol stack:
 | **Experimental / Partial** | **Logitech HID++ 2.0**, **Razer HID**, **Nordic nRF52840**, **SteelSeries / Corsair / HyperX** | Implemented — community testing & HID reports welcome |
 | **Universal Fallback** | **Bluetooth LE / GATT** battery + **Any USB / Wired OS Mouse** | Battery (BT) + Windows Pointer + Raw Input Hz Tester |
 
-> **Note**: This is an early **`v0.1 beta`** release. If your mouse isn't detected or reports unexpected values, open **Settings → HID**, click **Dump**, and open a **Device Support** issue with the VID:PID and interface details!
+> **Note**: This is an early **`v0.1 beta`** release. If your mouse isn't detected or reports unexpected values, open **Settings → HID**, click **Dump**, and open a **[Device Support issue](https://github.com/requiemxdxd/MouseDeck/issues/new?template=device-support.yml)** with the VID:PID and interface details!
 
 ---
 
@@ -95,9 +97,9 @@ Custom JSON protocols override built-in fallbacks — PRs with verified device d
 ## Requirements & Installation
 
 - **Windows 11** (64-bit)
-- Download from **Releases**:
-  - **`MouseDeck-*-win-x64-portable.exe`** (~25 MB) — requires [.NET 9.0 Desktop Runtime (x64)](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
-  - **`MouseDeck-*-win-x64-standalone.exe`** — self-contained, zero external runtime required
+- Download from **[GitHub Releases](https://github.com/requiemxdxd/MouseDeck/releases)**:
+  - **`MouseDeck-*-win-x64-portable.exe`** (~25 MB) — recommended if you already have [.NET 9.0 Desktop Runtime (x64)](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
+  - **`MouseDeck-*-win-x64-standalone.exe`** (~154 MB) — self-contained, zero external runtime required
 - Portable single-file executable; stores configuration in `%AppData%\MouseDeck\`.
 - *SmartScreen note*: Because `v0.1 beta` is not yet signed with an EV code-signing certificate, Windows SmartScreen may warn on first run — click **More info → Run anyway**, verify `SHA256SUMS.txt`, or build directly from source below.
 
