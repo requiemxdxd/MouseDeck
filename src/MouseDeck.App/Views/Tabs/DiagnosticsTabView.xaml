@@ -1,0 +1,154 @@
+<UserControl x:Class="MouseDeck.App.Views.Tabs.DiagnosticsTabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="16,12,16,12">
+
+            <!-- 1. Hardware Telemetry Summary Card (CornerRadius 8, Nested Padding 8) -->
+            <Border Background="{StaticResource SurfaceCardBrush}" BorderBrush="{StaticResource DividerBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                <StackPanel>
+                    <Grid Margin="0,0,0,4">
+                        <TextBlock Text="{Binding DeviceName}" FontSize="12" FontWeight="Medium" Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock Text="{Binding ProtocolName}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" />
+                    </Grid>
+                    <Grid>
+                        <TextBlock FontFamily="{StaticResource MonoFontFamily}" FontSize="11" Foreground="{StaticResource TextMutedBrush}">
+                            <Run Text="{Binding DeviceKeyDisplay, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding DeviceInterfaceDisplay, Mode=OneWay}" />
+                        </TextBlock>
+                        <TextBlock Text="{Binding ConfigOriginText}" FontSize="11" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right" />
+                    </Grid>
+                    <TextBlock Text="{Binding VendorCoexistenceText}" FontSize="11" Foreground="#FF4CC38A" Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
+            <!-- 2. Scanner Filter & Actions -->
+            <Grid Height="28" Margin="0,0,0,8">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <CheckBox Content="{Binding Loc.MiceOnlyFilter}" IsChecked="{Binding ShowOnlyMiceAndVendor}" Margin="0,0,12,0" />
+                    <CheckBox Content="{Binding Loc.SimulatorFilter}" IsChecked="{Binding EnableVirtualMouse}" />
+                </StackPanel>
+                <Button Content="{Binding Loc.RefreshBtn}" Style="{StaticResource FlatActionButtonStyle}" Height="24" Padding="8,0" FontSize="11"
+                        HorizontalAlignment="Right" Command="{Binding RefreshScannerCommand}" />
+            </Grid>
+
+            <!-- HID Interfaces List (2 full rows visible cleanly, surface-step selection without harsh white border) -->
+            <ListBox ItemsSource="{Binding ScannedDevices}" SelectedItem="{Binding SelectedScannedDevice, Mode=TwoWay}"
+                     Height="88" Background="Transparent" BorderThickness="0" Margin="0,0,0,8"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Margin" Value="0,0,0,4" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border x:Name="Bd" Background="{StaticResource SurfaceCardBrush}"
+                                            BorderBrush="{StaticResource DividerBrush}" BorderThickness="1" CornerRadius="6" Padding="8,5">
+                                        <ContentPresenter />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource SurfaceControlBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource SurfaceActiveSegmentBrush}" />
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource ActiveSegmentBorderBrush}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <Grid>
+                                <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="Medium" Foreground="{StaticResource TextPrimaryBrush}" />
+                                <TextBlock Text="{Binding AccessLabel}" FontSize="11" FontFamily="{StaticResource MonoFontFamily}"
+                                           Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" />
+                            </Grid>
+                            <TextBlock Text="{Binding Subtitle}" FontSize="11" FontFamily="{StaticResource MonoFontFamily}"
+                                       Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- 4 Diagnostic Actions (No trailing periods or truncated labels) -->
+            <UniformGrid Columns="4" Margin="0,0,0,8">
+                <Button Content="{Binding Loc.DiagBatteryBtn}" Style="{StaticResource PrimaryWhiteButtonStyle}" Margin="0,0,4,0" Command="{Binding TestBatteryOnSelectedCommand}" />
+                <Button Content="{Binding Loc.DiagRegistersBtn}" Style="{StaticResource FlatActionButtonStyle}" Margin="2,0" Command="{Binding ReadFromDeviceCommand}" />
+                <Button Content="{Binding Loc.DiagSelectBtn}" Style="{StaticResource FlatActionButtonStyle}" Margin="2,0" Command="{Binding PinSelectedDeviceCommand}" />
+                <Button Content="{Binding Loc.DiagDumpBtn}" Style="{StaticResource FlatActionButtonStyle}" Margin="4,0,0,0" Command="{Binding CopySelectedDeviceInfoCommand}" />
+            </UniformGrid>
+
+            <Border Height="1" Background="{StaticResource DividerBrush}" Margin="0,0,0,8" />
+
+            <!-- 3. Raw HID Packet Sender (Compact 2-row layout so TX/RX log is visible on-screen) -->
+            <Grid Height="24" Margin="0,0,0,4">
+                <TextBlock Text="{Binding Loc.RawHidPacketHeader}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <CheckBox Content="Feature" IsChecked="{Binding UseFeatureReport}" Margin="0,0,12,0" />
+                    <CheckBox Content="RX" IsChecked="{Binding ReadResponseAfterSend}" />
+                </StackPanel>
+            </Grid>
+
+            <Grid Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="38" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="96" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0" Text="{Binding RawReportIdHex, UpdateSourceTrigger=PropertyChanged}"
+                         FontFamily="{StaticResource MonoFontFamily}" FontSize="12" HorizontalContentAlignment="Center" Margin="0,0,4,0" ToolTip="Report ID (Hex)" />
+                <TextBox Grid.Column="1" Text="{Binding RawPayloadHex, UpdateSourceTrigger=PropertyChanged}"
+                         FontFamily="{StaticResource MonoFontFamily}" FontSize="12" Margin="0,0,4,0" ToolTip="Payload (Hex)" />
+                <ComboBox Grid.Column="2" ItemsSource="{Binding ChecksumAlgorithms}" SelectedItem="{Binding SelectedChecksum, Mode=TwoWay}"
+                          FontSize="11" Margin="0,0,4,0" />
+                <Button Grid.Column="3" Content="{Binding Loc.SendBtn}" Style="{StaticResource PrimaryWhiteButtonStyle}" Padding="8,0"
+                        ToolTip="{Binding Loc.SendBtn}" Command="{Binding SendRawPacketCommand}" />
+            </Grid>
+
+            <!-- 4. Monospace TX/RX Log (Visible without scrolling!) -->
+            <Border Background="{StaticResource SurfaceDeepBrush}" BorderBrush="{StaticResource DividerBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="8,6">
+                <StackPanel>
+                    <Grid Margin="0,0,0,4">
+                        <TextBlock Text="{Binding ScannerStatusMessage}" FontSize="12"
+                                   Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="{Binding Loc.CopyBtn}" Style="{StaticResource FlatActionButtonStyle}" Height="20" Padding="6,0" FontSize="11" Margin="0,0,4,0" Command="{Binding CopyLogsCommand}" />
+                            <Button Content="{Binding Loc.ClearBtn}" Style="{StaticResource FlatActionButtonStyle}" Height="20" Padding="6,0" FontSize="11" Command="{Binding ClearLogsCommand}" />
+                        </StackPanel>
+                    </Grid>
+                    <ListBox ItemsSource="{Binding PacketLogs}" Height="56" Background="Transparent" BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="0,1" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <ContentPresenter />
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding FormattedLine}" FontFamily="{StaticResource MonoFontFamily}" FontSize="11"
+                                           Foreground="{Binding Direction, Converter={StaticResource PacketDirBrush}}" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

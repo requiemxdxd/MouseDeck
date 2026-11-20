@@ -1,0 +1,46 @@
+name: Device Support / HID Dump
+description: Request battery or hardware support for a wireless gaming mouse
+title: "[Device]: "
+labels: ["device-support"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help expand **MouseDeck** hardware support! Open **Settings → HID**, select your mouse interface, click **Dump**, and paste the output below.
+
+  - type: input
+    id: model
+    attributes:
+      label: Mouse Brand & Model
+      placeholder: e.g. VXE MAD R / Logitech G Pro X Superlight 2 / Lamzu Maya X
+    validations:
+      required: true
+
+  - type: dropdown
+    id: connection
+    attributes:
+      label: Connection Mode
+      options:
+        - 2.4 GHz USB Dongle (1K)
+        - 2.4 GHz USB Dongle (4K / 8K)
+        - Wired USB
+        - Bluetooth LE
+    validations:
+      required: true
+
+  - type: textarea
+    id: hid_dump
+    attributes:
+      label: Settings → HID → Dump Output
+      description: Paste the VID:PID, Usage Page, Report lengths, and Device Path from the Dump button.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Current vs Expected Behavior
+      placeholder: What currently happens in MouseDeck (e.g., detected as Generic USB Mouse, battery not read, DPI read works, etc.)?
+    validations:
+      required: true

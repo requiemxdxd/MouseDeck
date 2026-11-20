@@ -1,0 +1,96 @@
+<UserControl x:Class="MouseDeck.App.Views.Tabs.SystemAndButtonsTabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="16,12,16,12">
+
+            <!-- 1. Windows Pointer Settings (Compact Single-Line Rows on 4px Grid) -->
+            <Grid Height="24" Margin="0,0,0,8">
+                <TextBlock Text="{Binding Loc.WindowsPointerSection}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                <Button Content="{Binding Loc.RefreshBtn}" Style="{StaticResource FlatActionButtonStyle}" Height="22" Padding="8,0" FontSize="11"
+                        HorizontalAlignment="Right" Command="{Binding RefreshWindowsSettingsCommand}" />
+            </Grid>
+
+            <!-- Row 1: Pointer Speed -->
+            <Grid Height="26" Margin="0,0,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="116" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="84" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding Loc.PointerSpeedRow}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                <Slider Grid.Column="1" Minimum="1" Maximum="20" TickFrequency="1" IsSnapToTickEnabled="True"
+                        Value="{Binding WindowsPointerSpeed, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <TextBlock Grid.Column="2" Text="{Binding WindowsPointerSpeedLabel}" FontSize="12" FontWeight="Medium"
+                           Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                           Typography.NumeralAlignment="Tabular" />
+            </Grid>
+
+            <!-- Row 2: Wheel Scroll Lines -->
+            <Grid Height="26" Margin="0,0,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="116" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="84" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding Loc.ScrollLinesRow}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                <Slider Grid.Column="1" Minimum="1" Maximum="20" TickFrequency="1" IsSnapToTickEnabled="True"
+                        Value="{Binding WindowsWheelScrollLines, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <TextBlock Grid.Column="2" FontSize="12" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}"
+                           HorizontalAlignment="Right" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular">
+                    <Run Text="{Binding WindowsWheelScrollLines, Mode=OneWay}" /><Run Text="{Binding Loc.ScrollLinesUnit, Mode=OneWay}" />
+                </TextBlock>
+            </Grid>
+
+            <!-- Row 3: Double Click Time -->
+            <Grid Height="26" Margin="0,0,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="116" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="84" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding Loc.DoubleClickRow}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                <Slider Grid.Column="1" Minimum="200" Maximum="900" TickFrequency="25" IsSnapToTickEnabled="True"
+                        Value="{Binding WindowsDoubleClickMs, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <TextBlock Grid.Column="2" FontSize="12" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}"
+                           HorizontalAlignment="Right" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular">
+                    <Run Text="{Binding WindowsDoubleClickMs, Mode=OneWay}" /><Run Text="{Binding Loc.MsSuffix, Mode=OneWay}" />
+                </TextBlock>
+            </Grid>
+
+            <!-- Row 4: Enhance Pointer Precision (EPP) -->
+            <Grid Height="26" Margin="0,0,0,6">
+                <TextBlock Text="{Binding Loc.EnhancePointerPrecisionShort}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                <CheckBox IsChecked="{Binding WindowsEnhancePointerPrecision, Mode=TwoWay}" Style="{StaticResource MonochromeSwitchStyle}" HorizontalAlignment="Right" />
+            </Grid>
+
+            <Border Height="1" Background="{StaticResource DividerBrush}" Margin="0,0,0,8" />
+
+            <!-- 2. Button Remapping (All 6 buttons visible on 1 screen without clipping) -->
+            <Grid Height="24" Margin="0,0,0,8">
+                <TextBlock Text="{Binding Loc.ButtonAssignmentsSection}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                <Button Content="{Binding Loc.ResetBtn}" Style="{StaticResource FlatActionButtonStyle}" Height="22" Padding="8,0" FontSize="11"
+                        HorizontalAlignment="Right" Command="{Binding ResetButtonMappingsCommand}" />
+            </Grid>
+
+            <ItemsControl ItemsSource="{Binding ButtonMappings}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Height="28" Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="112" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding ButtonLabel}" FontSize="12"
+                                       Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding DataContext.AvailableButtonActions, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                      SelectedItem="{Binding SelectedAction, Mode=TwoWay}" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

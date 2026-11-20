@@ -1,0 +1,48 @@
+name: Bug Report
+description: Report a UI, taskbar pill, or hardware bug in MouseDeck
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: MouseDeck Version
+      placeholder: v0.1 beta
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Windows Version & Display Scaling
+      placeholder: e.g. Windows 11 24H2, 1920x1080 @ 100%, taskbar centered
+    validations:
+      required: true
+
+  - type: input
+    id: mouse
+    attributes:
+      label: Mouse Model & Connection
+      placeholder: e.g. VXE MAD 8K (2.4 GHz dongle)
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Launch MouseDeck
+        2. Click ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs (Optional)
+      description: You can attach excerpts from `%AppData%\MouseDeck\app.log` or **Settings → HID → Copy**.
+      render: text
+    validations:
+      required: false

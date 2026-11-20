@@ -1,0 +1,813 @@
+<Window x:Class="MouseDeck.App.Views.FlyoutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:tabs="clr-namespace:MouseDeck.App.Views.Tabs"
+        Title="MouseDeck"
+        Width="360"
+        MinHeight="340"
+        SizeToContent="Height"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Background="{StaticResource SurfaceWindowSolidBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource AppFontFamily}"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="Grayscale"
+        TextOptions.TextHintingMode="Fixed"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        PreviewKeyDown="OnWindowPreviewKeyDown"
+        Deactivated="OnWindowDeactivated"
+        Closing="OnWindowClosing">
+
+    <!-- Native opaque Win11 HWND: DWM provides crisp rounded corners + shadow, TrueType Display-hinted Segoe UI snaps stems to exact 1px grid -->
+    <Border x:Name="RootContainer" Background="{StaticResource SurfaceWindowSolidBrush}">
+        <Border x:Name="MainChromeBorder"
+                Background="{StaticResource SurfaceWindowSolidBrush}">
+
+            <Grid>
+                <Grid Visibility="{Binding IsFirstRunSetupVisible, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
+                <!-- ========================================================= -->
+                <!-- SCREEN 0: NATIVE WINDOWS 11 QUICK FLYOUT (360px)          -->
+                <!-- ========================================================= -->
+                <Grid x:Name="MainScreenGrid" Visibility="{Binding IsSettingsOpen, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
+                    <Grid.RenderTransform>
+                        <TranslateTransform x:Name="MainScreenSlide" X="0" />
+                    </Grid.RenderTransform>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="40" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- 1. Slim Titlebar (40px): Status Dot + Mouse Name | Lock Pill + RU/EN Button + Pin + Settings -->
+                    <Border Grid.Row="0" Padding="16,0,8,0" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,1"
+                            Background="Transparent">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Grid Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0" ToolTip="{Binding StatusTooltip}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Ellipse Grid.Column="0" Width="6" Height="6" Fill="{Binding StatusDotBrush}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{Binding ShortDeviceName}" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" />
+                            </Grid>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <ToggleButton IsChecked="{Binding IsWriteUnlocked, Mode=TwoWay}"
+                                              Style="{StaticResource HeaderLockToggleStyle}"
+                                              Visibility="{Binding SupportsHardwareSettings, Converter={StaticResource BoolToVis}}"
+                                              ToolTip="{Binding Loc.LockTooltip}"
+                                              Margin="0,0,4,0" />
+                                <!-- Compact Language Switcher right on the Main Screen (RU <-> EN) -->
+                                <Button Content="{Binding Loc.LanguageBadge}"
+                                        Style="{StaticResource FlatActionButtonStyle}"
+                                        Height="24" Padding="6,0" FontSize="11" FontWeight="SemiBold"
+                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        ToolTip="{Binding Loc.LanguageTooltip}"
+                                        Command="{Binding ToggleLanguageCommand}"
+                                        Margin="0,0,4,0" />
+                                <ToggleButton IsChecked="{Binding PinWindowOpen, Mode=TwoWay}"
+                                              Style="{StaticResource HeaderPinToggleStyle}"
+                                              ToolTip="{Binding Loc.PinTooltip}" Margin="0,0,2,0" />
+                                <Button Content="&#xE713;" Style="{StaticResource HeaderIconButtonStyle}"
+                                        ToolTip="{Binding Loc.SettingsTooltip}"
+                                        Command="{Binding ToggleSettingsCommand}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- 2. Multi-Mouse Quick Switcher (Visible ONLY when 2+ mice are connected) -->
+                    <Border Grid.Row="1" Padding="16,8,16,0"
+                            Visibility="{Binding HasMultipleMice, Converter={StaticResource BoolToVis}}">
+                        <Border Style="{StaticResource SegmentedTrackStyle}">
+                            <ItemsControl ItemsSource="{Binding AvailableMice}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Rows="1" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Cursor="Hand"
+                                                Command="{Binding DataContext.SelectMouseCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding DevicePath}">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="Seg" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                                                            CornerRadius="6" Padding="6,4">
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                            <TextBlock x:Name="Lbl" Text="{Binding DisplayName}" FontSize="12"
+                                                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                                            <TextBlock Text="{Binding TransportBadge}" FontSize="11" FontWeight="Medium"
+                                                                       Foreground="{StaticResource TextMutedBrush}" Margin="5,0,0,0" VerticalAlignment="Center"
+                                                                       Typography.NumeralAlignment="Tabular" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Lbl" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                                        </Trigger>
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                            <Setter TargetName="Seg" Property="Background" Value="{StaticResource SurfaceActiveSegmentBrush}" />
+                                                            <Setter TargetName="Seg" Property="BorderBrush" Value="{StaticResource ActiveSegmentBorderBrush}" />
+                                                            <Setter TargetName="Lbl" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                                            <Setter TargetName="Lbl" Property="FontWeight" Value="Medium" />
+                                                        </DataTrigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                    </Border>
+
+                    <!-- 3. HERO BATTERY & DEVICE CARD (Centerpiece: Prominent % + 10-Segment Gauge + Expandable 24h Sparkline) -->
+                    <Border Grid.Row="2" Padding="16,12,16,8">
+                        <Border Background="{StaticResource SurfaceCardBrush}" BorderBrush="{StaticResource SubtleBorderBrush}"
+                                BorderThickness="1" CornerRadius="10" Padding="14,10" Cursor="Hand"
+                                MouseLeftButtonUp="OnBatteryCardClicked" ToolTip="{Binding Loc.BatteryCardTooltip}">
+                            <StackPanel>
+                                <!-- Top Row: Giant Battery % + Lightning Bolt | Channel Pill + Expand Chevron -->
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding BatteryPercentHeroText}" FontSize="28" FontWeight="SemiBold"
+                                                   Foreground="{Binding BatteryPercentHeroBrush}" VerticalAlignment="Center"
+                                                   Typography.NumeralAlignment="Tabular" />
+                                        <TextBlock Text="&#xE945;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16"
+                                                   Foreground="#FF4CC38A" VerticalAlignment="Center" Margin="6,2,0,0"
+                                                   Visibility="{Binding IsCharging, Converter={StaticResource BoolToVis}}" />
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <Border Background="{StaticResource SurfaceDeepBrush}" BorderBrush="{StaticResource DividerBrush}"
+                                                BorderThickness="1" CornerRadius="4" Padding="7,3" Margin="0,0,6,0">
+                                            <TextBlock Text="{Binding BatteryChannelBadge}" FontSize="12" FontWeight="Medium"
+                                                       Foreground="{StaticResource TextSecondaryBrush}" Typography.NumeralAlignment="Tabular" />
+                                        </Border>
+                                        <TextBlock Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10"
+                                                   Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"
+                                                   Visibility="{Binding HasBatterySupport, Converter={StaticResource BoolToVis}}" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- 10-Segment Tactile Hardware Battery Gauge -->
+                                <ItemsControl ItemsSource="{Binding BatterySegments}" Margin="0,8,0,8"
+                                              Visibility="{Binding HasBatterySupport, Converter={StaticResource BoolToVis}}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Rows="1" Columns="10" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Height="6" CornerRadius="2" Margin="1.5,0" Background="{Binding FillBrush}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- Telemetry Subline (Voltage + Estimated Autonomy / Charge ETA) -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding BatteryPrimarySubline}" FontSize="12"
+                                               Foreground="{StaticResource TextSecondaryBrush}" Typography.NumeralAlignment="Tabular"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="{Binding ProtocolName}" FontSize="11"
+                                               Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right"
+                                               VerticalAlignment="Center" Margin="8,0,0,0" />
+                                </Grid>
+
+                                <!-- Expandable 24-Hour Discharge Sparkline Drawer -->
+                                <StackPanel x:Name="BatteryHistoryDrawer"
+                                            Visibility="{Binding IsBatteryHistoryExpanded, Converter={StaticResource BoolToVis}}"
+                                            Margin="0,10,0,0">
+                                    <StackPanel.RenderTransform>
+                                        <TranslateTransform x:Name="BatteryHistorySlide" Y="0" />
+                                    </StackPanel.RenderTransform>
+                                    <Border Height="1" Background="{StaticResource DividerBrush}" Margin="0,0,0,8" />
+                                    <Grid Margin="0,0,0,4">
+                                        <TextBlock Text="{Binding Loc.DischargeHistory24h}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock Text="{Binding BatteryDrainRateText}" FontSize="12"
+                                                   Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right"
+                                                   Typography.NumeralAlignment="Tabular" />
+                                    </Grid>
+                                    <Border Background="{StaticResource SurfaceDeepBrush}" BorderBrush="{StaticResource DividerBrush}"
+                                            BorderThickness="1" CornerRadius="6" Padding="6,4" Height="44">
+                                        <Grid>
+                                            <TextBlock Text="{Binding Loc.NotEnoughSparklineData}" FontSize="11"
+                                                       Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       Visibility="{Binding HasSparklineData, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}" />
+                                            <Canvas Height="34" Width="304" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                    Visibility="{Binding HasSparklineData, Converter={StaticResource BoolToVis}}">
+                                                <Line X1="0" Y1="17" X2="304" Y2="17" Stroke="#14EDEDED" StrokeThickness="1" StrokeDashArray="2 3" />
+                                                <Polyline Points="{Binding BatterySparklinePoints}" Stroke="#FF4CC38A" StrokeThickness="1.75"
+                                                          StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                            </Canvas>
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </Border>
+
+                    <!-- 4. Inline Locked-Click Hint Banner (only appears when user clicks a locked control) -->
+                    <Border Grid.Row="3" Padding="16,0,16,8"
+                            Visibility="{Binding LockedHintVisible, Converter={StaticResource BoolToVis}}">
+                        <Border Background="#20D99B43" BorderBrush="#48D99B43" BorderThickness="1" CornerRadius="8" Padding="10,6">
+                            <Grid>
+                                <TextBlock Text="{Binding Loc.MemoryProtectionBanner}" FontSize="12" Foreground="#FFF3C97A" VerticalAlignment="Center" />
+                                <Button Content="{Binding Loc.UnlockBtn}" Style="{StaticResource FlatActionButtonStyle}" Height="22" Padding="8,0" FontSize="11"
+                                        HorizontalAlignment="Right" Command="{Binding UnlockNowCommand}" />
+                            </Grid>
+                        </Border>
+                    </Border>
+
+                    <!-- 5A. FULL HARDWARE MOUSE CONTROLS (CompX / Nordic / Programmable Mice) -->
+                    <StackPanel Grid.Row="4" Background="Transparent"
+                                Visibility="{Binding SupportsHardwareSettings, Converter={StaticResource BoolToVis}}"
+                                PreviewMouseLeftButtonDown="OnHardwareAreaPreviewClick">
+
+                        <!-- Profile Switcher -->
+                        <Border Padding="16,8,16,10" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,1"
+                                IsEnabled="{Binding IsWriteUnlocked}">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,8">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Loc.ProfileHeader}" FontSize="12" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <Border Background="{StaticResource SurfaceDeepBrush}" BorderBrush="{StaticResource DividerBrush}"
+                                                BorderThickness="1" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding ActiveForegroundProcess}" FontFamily="{StaticResource MonoFontFamily}" FontSize="12"
+                                                       Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                                        </Border>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Loc.AutoHeader}" FontSize="12" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <CheckBox IsChecked="{Binding AutoSwitchEnabled, Mode=TwoWay}" Style="{StaticResource MonochromeSwitchStyle}" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <Border Style="{StaticResource SegmentedTrackStyle}">
+                                    <ItemsControl ItemsSource="{Binding Profiles}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Rows="1" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Cursor="Hand" ToolTip="{Binding Name}"
+                                                        Command="{Binding DataContext.SelectProfileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding Id}">
+                                                    <Button.Template>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border x:Name="Seg" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                                                                    CornerRadius="6" Padding="4,5">
+                                                                <TextBlock x:Name="Lbl" Text="{Binding ShortName}" FontSize="12" FontWeight="Normal"
+                                                                           HorizontalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="Lbl" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                                                </Trigger>
+                                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                    <Setter TargetName="Seg" Property="Background" Value="{StaticResource SurfaceActiveSegmentBrush}" />
+                                                                    <Setter TargetName="Seg" Property="BorderBrush" Value="{StaticResource ActiveSegmentBorderBrush}" />
+                                                                    <Setter TargetName="Lbl" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                                                    <Setter TargetName="Lbl" Property="FontWeight" Value="Medium" />
+                                                                </DataTrigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Button.Template>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- DPI Block (Mouse-wheel ±50 nudge + color-coded LED dots under stages) -->
+                        <Border Padding="16,10,16,10" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,1"
+                                IsEnabled="{Binding IsWriteUnlocked}" PreviewMouseWheel="OnDpiBlockMouseWheel">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,6">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Loc.SensitivityDpi}" FontSize="12" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}" />
+                                        <TextBlock Text="{Binding DpiStageMetaText}" FontSize="12"
+                                                   Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"
+                                                   Typography.NumeralAlignment="Tabular" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding CurrentDpiDisplay}" FontSize="24" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                               Typography.NumeralAlignment="Tabular" ToolTip="{Binding Loc.DpiWheelTooltip}" />
+                                </Grid>
+
+                                <Slider Minimum="{Binding QuickMinDpi}" Maximum="{Binding QuickMaxDpi}"
+                                        TickFrequency="{Binding DpiStep}" IsSnapToTickEnabled="True"
+                                        Value="{Binding SelectedDpiValue, Mode=TwoWay}" Margin="0,0,0,8" />
+
+                                <Border Style="{StaticResource SegmentedTrackStyle}">
+                                    <ItemsControl ItemsSource="{Binding DpiStages}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Rows="1" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Cursor="Hand"
+                                                        Command="{Binding DataContext.SelectDpiStageCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding Index}">
+                                                    <Button.Template>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border x:Name="Seg" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                                                                    CornerRadius="6" Padding="4,4">
+                                                                <StackPanel HorizontalAlignment="Center">
+                                                                    <TextBlock x:Name="Lbl" Text="{Binding Dpi}" FontSize="12" FontWeight="Normal"
+                                                                               HorizontalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}"
+                                                                               Typography.NumeralAlignment="Tabular" />
+                                                                    <Ellipse x:Name="StageDot" Width="4" Height="4" Margin="0,2,0,0" Opacity="0.35"
+                                                                             Fill="{Binding ColorHex, Converter={StaticResource HexToBrush}}" />
+                                                                </StackPanel>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="Lbl" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                                                    <Setter TargetName="StageDot" Property="Opacity" Value="0.85" />
+                                                                </Trigger>
+                                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                    <Setter TargetName="Seg" Property="Background" Value="{StaticResource SurfaceActiveSegmentBrush}" />
+                                                                    <Setter TargetName="Seg" Property="BorderBrush" Value="{StaticResource ActiveSegmentBorderBrush}" />
+                                                                    <Setter TargetName="Lbl" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                                                    <Setter TargetName="Lbl" Property="FontWeight" Value="Medium" />
+                                                                    <Setter TargetName="StageDot" Property="Opacity" Value="1.0" />
+                                                                </DataTrigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Button.Template>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Polling Rate Strip -->
+                        <Border Padding="16,10,16,10" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,1"
+                                IsEnabled="{Binding IsWriteUnlocked}">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,6">
+                                    <TextBlock Text="{Binding Loc.PollingRateHeader}" FontSize="12" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding PollingLatencyText}" FontSize="12"
+                                               Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                               Typography.NumeralAlignment="Tabular" />
+                                </Grid>
+
+                                <Border Style="{StaticResource SegmentedTrackStyle}">
+                                    <ItemsControl ItemsSource="{Binding PollingRates}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Rows="1" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Cursor="Hand" IsEnabled="{Binding IsSupported}"
+                                                        Command="{Binding DataContext.SelectPollingRateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding RateHz}">
+                                                    <Button.Template>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border x:Name="Seg" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                                                                    CornerRadius="6" Padding="2,5">
+                                                                <TextBlock x:Name="Lbl" Text="{Binding Label}" FontSize="12" FontWeight="Normal"
+                                                                           HorizontalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}"
+                                                                           Typography.NumeralAlignment="Tabular" />
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="Lbl" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                                                </Trigger>
+                                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                    <Setter TargetName="Seg" Property="Background" Value="{StaticResource SurfaceActiveSegmentBrush}" />
+                                                                    <Setter TargetName="Seg" Property="BorderBrush" Value="{StaticResource ActiveSegmentBorderBrush}" />
+                                                                    <Setter TargetName="Lbl" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                                                    <Setter TargetName="Lbl" Property="FontWeight" Value="Medium" />
+                                                                </DataTrigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Button.Template>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Quick Sensor Rows (LOD, Motion Sync, Debounce) -->
+                        <StackPanel Margin="16,4,16,8" IsEnabled="{Binding IsWriteUnlocked}">
+                            <Grid Height="34">
+                                <TextBlock Text="{Binding Loc.LodHeader}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                <Border Style="{StaticResource SegmentedTrackStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" Width="140">
+                                    <UniformGrid Columns="3">
+                                        <RadioButton GroupName="QuickLod" Content="0.7" IsEnabled="{Binding SupportsLod07}" Padding="4,2"
+                                                     Typography.NumeralAlignment="Tabular"
+                                                     IsChecked="{Binding SelectedLodMm, Converter={StaticResource DoubleEquals}, ConverterParameter=0.7, Mode=OneWay}"
+                                                     Command="{Binding SetLodCommand}" CommandParameter="0.7"
+                                                     Style="{StaticResource SegmentRadioItemStyle}" />
+                                        <RadioButton GroupName="QuickLod" Content="{Binding Loc.Lod1Mm}" Padding="4,2"
+                                                     Typography.NumeralAlignment="Tabular"
+                                                     IsChecked="{Binding SelectedLodMm, Converter={StaticResource DoubleEquals}, ConverterParameter=1.0, Mode=OneWay}"
+                                                     Command="{Binding SetLodCommand}" CommandParameter="1.0"
+                                                     Style="{StaticResource SegmentRadioItemStyle}" />
+                                        <RadioButton GroupName="QuickLod" Content="{Binding Loc.Lod2Mm}" Padding="4,2"
+                                                     Typography.NumeralAlignment="Tabular"
+                                                     IsChecked="{Binding SelectedLodMm, Converter={StaticResource DoubleEquals}, ConverterParameter=2.0, Mode=OneWay}"
+                                                     Command="{Binding SetLodCommand}" CommandParameter="2.0"
+                                                     Style="{StaticResource SegmentRadioItemStyle}" />
+                                    </UniformGrid>
+                                </Border>
+                            </Grid>
+
+                            <Border Height="1" Background="{StaticResource DividerBrush}" />
+
+                            <Grid Height="34">
+                                <TextBlock Text="Motion Sync" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                <CheckBox IsChecked="{Binding MotionSync, Mode=TwoWay}" Style="{StaticResource MonochromeSwitchStyle}" HorizontalAlignment="Right" />
+                            </Grid>
+
+                            <Border Height="1" Background="{StaticResource DividerBrush}" />
+
+                            <Grid Height="34">
+                                <TextBlock Text="{Binding Loc.ClickDebounceHeader}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                <Border Style="{StaticResource SegmentedTrackStyle}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="−" Width="24" Height="22" Padding="0" BorderThickness="0" Style="{StaticResource FlatActionButtonStyle}"
+                                                Background="Transparent" Command="{Binding StepDebounceCommand}" CommandParameter="-1" />
+                                        <TextBlock Width="44" TextAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="Medium"
+                                                   Foreground="{StaticResource TextPrimaryBrush}" Typography.NumeralAlignment="Tabular">
+                                            <Run Text="{Binding DebounceMs, Mode=OneWay}" /><Run Text="{Binding Loc.MsSuffix, Mode=OneWay}" />
+                                        </TextBlock>
+                                        <Button Content="+" Width="24" Height="22" Padding="0" BorderThickness="0" Style="{StaticResource FlatActionButtonStyle}"
+                                                Background="Transparent" Command="{Binding StepDebounceCommand}" CommandParameter="1" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- 5B. UNIVERSAL ADAPTIVE CONTROLS (For Bluetooth, Logitech/Razer/SteelSeries Battery-Only & Wired OS Mice) -->
+                    <StackPanel Grid.Row="5" Visibility="{Binding SupportsHardwareSettings, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
+                        <!-- Quick Windows Pointer Speed -->
+                        <Border Padding="16,8,16,12" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,1">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,6">
+                                    <TextBlock Text="{Binding Loc.WindowsPointerSpeedMain}" FontSize="12" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}" />
+                                    <TextBlock Text="{Binding WindowsPointerSpeedLabel}" FontSize="12" FontWeight="Medium"
+                                               Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Right" Typography.NumeralAlignment="Tabular" />
+                                </Grid>
+                                <Slider Minimum="1" Maximum="20" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Value="{Binding WindowsPointerSpeed, Mode=TwoWay}" Margin="0,0,0,10" />
+                                <Grid Height="28">
+                                    <TextBlock Text="{Binding Loc.EnhancePointerPrecisionMain}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                    <CheckBox IsChecked="{Binding WindowsEnhancePointerPrecision, Mode=TwoWay}" Style="{StaticResource MonochromeSwitchStyle}" HorizontalAlignment="Right" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Built-in Universal Live Polling Rate (Hz) Tester via Raw Input -->
+                        <Border Padding="16,12,16,14">
+                            <Border Background="{StaticResource SurfaceCardBrush}" BorderBrush="{StaticResource DividerBrush}"
+                                    BorderThickness="1" CornerRadius="8" Padding="12,10">
+                                <Grid>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Loc.PollingRateTesterMain}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                            <TextBlock Text="{Binding MeasuredPollingHzText}" FontSize="16" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextPrimaryBrush}" Typography.NumeralAlignment="Tabular" />
+                                            <TextBlock Text="{Binding PeakPollingHzText}" FontSize="12"
+                                                       Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Bottom" Margin="8,0,0,1" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <Button HorizontalAlignment="Right" VerticalAlignment="Center"
+                                            Style="{StaticResource FlatActionButtonStyle}" Command="{Binding TogglePollingTestCommand}">
+                                        <Button.Content>
+                                            <TextBlock>
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="{Binding DataContext.Loc.TestHzBtn, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsPollingTestActive}" Value="True">
+                                                                <Setter Property="Text" Value="{Binding DataContext.Loc.StopBtn, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Button.Content>
+                                    </Button>
+                                </Grid>
+                            </Border>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- 6. Slim Apply / Revert Bar (Visible ONLY when unlocked and changes are staged) -->
+                    <Border Grid.Row="6" Padding="16,8,16,12" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,1,0,0"
+                            Visibility="{Binding HasUnappliedChanges, Converter={StaticResource BoolToVis}}">
+                        <UniformGrid Columns="2">
+                            <Button Content="{Binding Loc.RevertBtn}" Style="{StaticResource FlatActionButtonStyle}" Margin="0,0,4,0"
+                                    Command="{Binding RevertChangesCommand}" />
+                            <Button Content="{Binding Loc.ApplyBtn}" Style="{StaticResource PrimaryWhiteButtonStyle}" Margin="4,0,0,0"
+                                    Command="{Binding ApplyChangesCommand}" />
+                        </UniformGrid>
+                    </Border>
+                </Grid>
+
+                <!-- ========================================================= -->
+                <!-- SCREEN 1: SECONDARY SETTINGS & HID DIAGNOSTICS (360px)    -->
+                <!-- ========================================================= -->
+                <Grid x:Name="SettingsScreenGrid" Height="518" Visibility="{Binding IsSettingsOpen, Converter={StaticResource BoolToVis}}">
+                    <Grid.RenderTransform>
+                        <TranslateTransform x:Name="SettingsScreenSlide" X="0" />
+                    </Grid.RenderTransform>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="44" />
+                        <RowDefinition Height="44" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="24" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Settings Header (44px): Back Arrow + Title | Language, Setup Wizard, Refresh, Folder, Exit -->
+                    <Border Grid.Row="0" Padding="8,0,8,0" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,1"
+                            Background="Transparent">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="&#xE72B;" Style="{StaticResource HeaderIconButtonStyle}"
+                                        ToolTip="{Binding Loc.BackTooltip}" Command="{Binding CloseSettingsCommand}" Margin="0,0,4,0" />
+                                <TextBlock Text="{Binding Loc.SettingsHeader}" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                <TextBlock Text="v0.1 beta" FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                           VerticalAlignment="Center" Margin="6,1,0,0" Typography.NumeralAlignment="Tabular" />
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <Button Content="{Binding Loc.LanguageBadge}"
+                                        Style="{StaticResource FlatActionButtonStyle}"
+                                        Height="24" Padding="6,0" FontSize="11" FontWeight="SemiBold"
+                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        ToolTip="{Binding Loc.LanguageTooltip}"
+                                        Command="{Binding ToggleLanguageCommand}"
+                                        Margin="0,0,4,0" />
+                                <Button Content="&#xE771;" Style="{StaticResource HeaderIconButtonStyle}"
+                                        ToolTip="{Binding Loc.SetupWizardTooltip}" Command="{Binding OpenFirstRunSetupCommand}" Margin="0,0,2,0" />
+                                <Button Content="&#xE72C;" Style="{StaticResource HeaderIconButtonStyle}"
+                                        ToolTip="{Binding Loc.RefreshDevicesTooltip}" Command="{Binding RefreshNowCommand}" Margin="0,0,2,0" />
+                                <Button Content="&#xE8B7;" Style="{StaticResource HeaderIconButtonStyle}"
+                                        ToolTip="{Binding Loc.OpenConfigFolderTooltip}" Command="{Binding OpenConfigFolderCommand}" Margin="0,0,2,0" />
+                                <Button Content="&#xE7E8;" Style="{StaticResource HeaderIconButtonStyle}"
+                                        ToolTip="{Binding Loc.QuitTooltip}" Command="{Binding ExitApplicationCommand}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Clean 4-Way Monochrome Sub-Navigation (44px) -->
+                    <Border Grid.Row="1" Padding="16,6,16,6" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,1">
+                        <Border Style="{StaticResource SegmentedTrackStyle}">
+                            <UniformGrid Columns="4">
+                                <RadioButton GroupName="SettingsNav" Content="{Binding Loc.TabSensor}" Style="{StaticResource SegmentRadioItemStyle}"
+                                             IsChecked="{Binding SettingsTabIndex, Converter={StaticResource IntEquals}, ConverterParameter=0}" />
+                                <RadioButton GroupName="SettingsNav" Content="{Binding Loc.TabAuto}" Style="{StaticResource SegmentRadioItemStyle}"
+                                             IsChecked="{Binding SettingsTabIndex, Converter={StaticResource IntEquals}, ConverterParameter=1}" />
+                                <RadioButton GroupName="SettingsNav" Content="{Binding Loc.TabOs}" Style="{StaticResource SegmentRadioItemStyle}"
+                                             IsChecked="{Binding SettingsTabIndex, Converter={StaticResource IntEquals}, ConverterParameter=2}" />
+                                <RadioButton GroupName="SettingsNav" Content="{Binding Loc.TabHid}" Style="{StaticResource SegmentRadioItemStyle}"
+                                             IsChecked="{Binding SettingsTabIndex, Converter={StaticResource IntEquals}, ConverterParameter=3}" />
+                            </UniformGrid>
+                        </Border>
+                    </Border>
+
+                    <!-- Settings Sub-Page Content -->
+                    <Grid x:Name="SettingsTabsHost" Grid.Row="2">
+                        <Grid.RenderTransform>
+                            <TranslateTransform x:Name="SettingsTabsSlide" X="0" />
+                        </Grid.RenderTransform>
+                        <tabs:SensorTabView>
+                            <tabs:SensorTabView.Style>
+                                <Style TargetType="UserControl">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SettingsTabIndex}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </tabs:SensorTabView.Style>
+                        </tabs:SensorTabView>
+
+                        <tabs:AutomationTabView>
+                            <tabs:AutomationTabView.Style>
+                                <Style TargetType="UserControl">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SettingsTabIndex}" Value="1">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </tabs:AutomationTabView.Style>
+                        </tabs:AutomationTabView>
+
+                        <tabs:SystemAndButtonsTabView>
+                            <tabs:SystemAndButtonsTabView.Style>
+                                <Style TargetType="UserControl">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SettingsTabIndex}" Value="2">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </tabs:SystemAndButtonsTabView.Style>
+                        </tabs:SystemAndButtonsTabView>
+
+                        <tabs:DiagnosticsTabView>
+                            <tabs:DiagnosticsTabView.Style>
+                                <Style TargetType="UserControl">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SettingsTabIndex}" Value="3">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </tabs:DiagnosticsTabView.Style>
+                        </tabs:DiagnosticsTabView>
+                    </Grid>
+
+                    <!-- Subtle Footer Credit -->
+                    <Border Grid.Row="3" Padding="16,0" BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,1,0,0">
+                        <TextBlock Text="made by requiemsystems" FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                   Opacity="0.65" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </Grid>
+                </Grid>
+
+                <!-- ========================================================= -->
+                <!-- OVERLAY: FIRST-RUN SETUP (LANGUAGE + MOUSE VERIFICATION)  -->
+                <!-- ========================================================= -->
+                <Border x:Name="FirstRunSetupOverlay"
+                        VerticalAlignment="Top"
+                        Background="{StaticResource SurfaceWindowSolidBrush}"
+                        Visibility="{Binding IsFirstRunSetupVisible, Converter={StaticResource BoolToVis}}"
+                        Padding="16,14,16,14">
+                    <StackPanel>
+                        <!-- Title Row -->
+                        <Grid Margin="0,0,0,4">
+                            <TextBlock Text="{Binding Loc.SetupTitle}" FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                            <TextBlock Text="v0.1 beta" FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                       HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        </Grid>
+                        <TextBlock Text="{Binding Loc.SetupSubtitle}" FontSize="12"
+                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,14" />
+
+                        <Border Height="1" Background="{StaticResource DividerBrush}" Margin="0,0,0,12" />
+
+                        <!-- Step 1: Choose Language -->
+                        <TextBlock Text="{Binding Loc.SetupLanguageHeader}" FontSize="12" FontWeight="Medium"
+                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8" />
+                        <Border Style="{StaticResource SegmentedTrackStyle}" Margin="0,0,0,16">
+                            <UniformGrid Columns="2">
+                                <RadioButton GroupName="SetupLang" Content="Русский (RU)"
+                                             Height="30" Style="{StaticResource SegmentRadioItemStyle}"
+                                             IsChecked="{Binding Loc.IsRussian, Mode=OneWay}"
+                                             Command="{Binding SelectLanguageCommand}" CommandParameter="ru" />
+                                <RadioButton GroupName="SetupLang" Content="English (EN)"
+                                             Height="30" Style="{StaticResource SegmentRadioItemStyle}"
+                                             IsChecked="{Binding Loc.IsEnglish, Mode=OneWay}"
+                                             Command="{Binding SelectLanguageCommand}" CommandParameter="en" />
+                            </UniformGrid>
+                        </Border>
+
+                        <!-- Step 2: Verify Detected Mouse -->
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="{Binding Loc.SetupMouseHeader}" FontSize="12" FontWeight="Medium"
+                                       Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                            <Button Content="{Binding Loc.SetupRescanBtn}"
+                                    Style="{StaticResource FlatActionButtonStyle}" Height="22" Padding="8,0" FontSize="11"
+                                    HorizontalAlignment="Right" Command="{Binding RefreshNowCommand}" />
+                        </Grid>
+
+                        <!-- Detected Mouse Card -->
+                        <Border Background="{StaticResource SurfaceCardBrush}" BorderBrush="{StaticResource ActiveSegmentBorderBrush}"
+                                BorderThickness="1" CornerRadius="10" Padding="14,12" Margin="0,0,0,10">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,6">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Ellipse Width="7" Height="7" Fill="{Binding StatusDotBrush}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding DeviceName}" FontSize="14" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <Border Background="{StaticResource SurfaceDeepBrush}" BorderBrush="{StaticResource DividerBrush}"
+                                            BorderThickness="1" CornerRadius="4" Padding="7,2" HorizontalAlignment="Right">
+                                        <TextBlock Text="{Binding BatteryPercentHeroText}" FontSize="12" FontWeight="SemiBold"
+                                                   Foreground="{Binding BatteryPercentHeroBrush}" />
+                                    </Border>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,4">
+                                    <TextBlock Text="{Binding ProtocolName}" FontSize="12"
+                                               Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding DeviceKeyDisplay}" FontFamily="{StaticResource MonoFontFamily}" FontSize="11"
+                                               Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                </Grid>
+
+                                <TextBlock Text="{Binding BatteryPrimarySubline}" FontSize="12"
+                                           Foreground="{StaticResource TextMutedBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Optional Device Picker when 2+ mice are detected -->
+                        <StackPanel Visibility="{Binding HasMultipleMice, Converter={StaticResource BoolToVis}}" Margin="0,0,0,10">
+                            <TextBlock Text="{Binding Loc.SetupSelectMouseHint}" FontSize="11"
+                                       Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,6" />
+                            <Border Style="{StaticResource SegmentedTrackStyle}">
+                                <ItemsControl ItemsSource="{Binding AvailableMice}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Rows="1" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Cursor="Hand"
+                                                    Command="{Binding DataContext.SelectMouseCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding DevicePath}">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border x:Name="Seg" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                                                                CornerRadius="6" Padding="6,5">
+                                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                                <TextBlock x:Name="Lbl" Text="{Binding DisplayName}" FontSize="12"
+                                                                           Foreground="{StaticResource TextSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding TransportBadge}" FontSize="11"
+                                                                           Foreground="{StaticResource TextMutedBrush}" Margin="5,0,0,0" VerticalAlignment="Center" />
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                <Setter TargetName="Seg" Property="Background" Value="{StaticResource SurfaceActiveSegmentBrush}" />
+                                                                <Setter TargetName="Seg" Property="BorderBrush" Value="{StaticResource ActiveSegmentBorderBrush}" />
+                                                                <Setter TargetName="Lbl" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                                                <Setter TargetName="Lbl" Property="FontWeight" Value="Medium" />
+                                                            </DataTrigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                        </StackPanel>
+
+                        <TextBlock Text="{Binding Loc.SetupMouseQuestion}" FontSize="12"
+                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,10" />
+
+                        <Button Content="{Binding Loc.SetupConfirmBtn}"
+                                Style="{StaticResource PrimaryWhiteButtonStyle}"
+                                Height="32" FontSize="12" Margin="0,0,0,8"
+                                Command="{Binding CompleteFirstRunSetupCommand}" />
+
+                        <Button Content="{Binding Loc.SetupManualHidBtn}"
+                                Style="{StaticResource FlatActionButtonStyle}"
+                                Height="28" FontSize="12"
+                                Command="{Binding OpenHidScannerFromSetupCommand}" />
+
+                        <TextBlock Text="made by requiemsystems" FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                   Opacity="0.65" HorizontalAlignment="Center" Margin="0,14,0,0" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+    </Border>
+</Window>

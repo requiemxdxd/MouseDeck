@@ -1,0 +1,134 @@
+<UserControl x:Class="MouseDeck.App.Views.Tabs.SensorTabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="16,8,16,8">
+
+            <!-- 1. Profile Management (Compact 2-row block on 4px grid) -->
+            <TextBlock Text="{Binding Loc.ProfileAndMemory}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6" />
+
+            <Grid Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0" Text="{Binding ActiveProfileNameEdit, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0" />
+                <Button Grid.Column="1" Content="{Binding Loc.SaveBtn}" Style="{StaticResource FlatActionButtonStyle}" Margin="0,0,4,0"
+                        Command="{Binding RenameActiveProfileCommand}" />
+                <Button Grid.Column="2" Content="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                        Style="{StaticResource FlatActionButtonStyle}" Width="28" Padding="0"
+                        ToolTip="{Binding Loc.DeleteProfileTooltip}" IsEnabled="{Binding CanDeleteActiveProfile}"
+                        Command="{Binding DeleteActiveProfileCommand}" />
+            </Grid>
+
+            <UniformGrid Columns="4" Margin="0,0,0,6">
+                <Button Content="{Binding Loc.NewBtn}" Style="{StaticResource FlatActionButtonStyle}" Margin="0,0,4,0" Command="{Binding AddProfileCommand}" />
+                <Button Content="{Binding Loc.ImportBtn}" Style="{StaticResource FlatActionButtonStyle}" Margin="2,0" Command="{Binding ImportProfileCommand}" />
+                <Button Content="{Binding Loc.ExportBtn}" Style="{StaticResource FlatActionButtonStyle}" Margin="2,0" Command="{Binding ExportActiveProfileCommand}" />
+                <Button Content="{Binding Loc.ReadBtn}" Style="{StaticResource FlatActionButtonStyle}" Margin="4,0,0,0"
+                        ToolTip="{Binding Loc.ReadRegistersTooltip}" Command="{Binding ReadFromDeviceCommand}" />
+            </UniformGrid>
+
+            <Border Height="1" Background="{StaticResource DividerBrush}" Margin="0,0,0,6" />
+
+            <!-- 2. Fine DPI Tuning (X/Y & Stage Count) -->
+            <Grid Height="26" Margin="0,0,0,4">
+                <TextBlock Text="{Binding Loc.IndependentDpiXY}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                <CheckBox IsChecked="{Binding IndependentXY, Mode=TwoWay}" Style="{StaticResource MonochromeSwitchStyle}" HorizontalAlignment="Right" />
+            </Grid>
+
+            <StackPanel Visibility="{Binding IndependentXY, Converter={StaticResource BoolToVis}}" Margin="0,0,0,6">
+                <Grid Margin="0,0,0,4">
+                    <TextBlock Text="{Binding Loc.YAxisSensitivity}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <TextBlock Text="{Binding SelectedDpiYValue}" FontSize="12" FontWeight="Medium"
+                               Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Right"
+                               Typography.NumeralAlignment="Tabular" />
+                </Grid>
+                <Slider Minimum="{Binding MinDpi}" Maximum="{Binding MaxDpi}"
+                        TickFrequency="{Binding DpiStep}" IsSnapToTickEnabled="True"
+                        Value="{Binding SelectedDpiYValue, Mode=TwoWay}" />
+            </StackPanel>
+
+            <UniformGrid Columns="2" Margin="0,0,0,6">
+                <Button Content="{Binding Loc.AddDpiStageBtn}" Style="{StaticResource FlatActionButtonStyle}" Margin="0,0,4,0"
+                        Command="{Binding AddDpiStageCommand}" />
+                <Button Content="{Binding Loc.RemoveDpiStageBtn}" Style="{StaticResource FlatActionButtonStyle}" Margin="4,0,0,0"
+                        Command="{Binding RemoveDpiStageCommand}" />
+            </UniformGrid>
+
+            <Border Height="1" Background="{StaticResource DividerBrush}" Margin="0,0,0,6" />
+
+            <!-- 3. Advanced PAW3395 / PAW3950 Sensor Parameters -->
+            <Grid Height="24" Margin="0,0,0,2">
+                <TextBlock Text="{Binding Loc.AngleTuningHeader}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock FontSize="12" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}"
+                               Typography.NumeralAlignment="Tabular" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <Run Text="{Binding AngleTuningDegrees}" /><Run Text="°" />
+                    </TextBlock>
+                    <Button Content="{Binding Loc.ResetBtn}" Style="{StaticResource FlatActionButtonStyle}" Height="20" Padding="8,0" FontSize="11"
+                            Command="{Binding ResetAngleTuningCommand}" />
+                </StackPanel>
+            </Grid>
+            <Slider Minimum="-15" Maximum="15" TickFrequency="1" IsSnapToTickEnabled="True"
+                    Value="{Binding AngleTuningDegrees, Mode=TwoWay}" Margin="0,0,0,4" />
+
+            <Grid Height="26">
+                <TextBlock Text="{Binding Loc.RippleControlHeader}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                <CheckBox IsChecked="{Binding RippleControl, Mode=TwoWay}" Style="{StaticResource MonochromeSwitchStyle}" HorizontalAlignment="Right" />
+            </Grid>
+
+            <Grid Height="26">
+                <TextBlock Text="{Binding Loc.AngleSnappingHeader}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                <CheckBox IsChecked="{Binding AngleSnapping, Mode=TwoWay}" Style="{StaticResource MonochromeSwitchStyle}" HorizontalAlignment="Right" />
+            </Grid>
+
+            <Grid Height="26" Visibility="{Binding SupportsHighSpeedMode, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding Loc.HighSpeedModeHeader}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                <CheckBox IsChecked="{Binding HighSpeedMode, Mode=TwoWay}" Style="{StaticResource MonochromeSwitchStyle}" HorizontalAlignment="Right" />
+            </Grid>
+
+            <Grid Height="28" Margin="0,2,0,6">
+                <TextBlock Text="{Binding Loc.SleepTimerHeader}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                <ComboBox Width="88" HorizontalAlignment="Right" VerticalAlignment="Center"
+                          ItemsSource="{Binding SleepTimeoutChoices}"
+                          SelectedItem="{Binding SleepTimeoutMinutes, Mode=TwoWay}" />
+            </Grid>
+
+            <!-- Live Raw Input Polling Rate (Hz) Tester (Works with ANY mouse, 0% CPU when stopped) -->
+            <Border Background="{StaticResource SurfaceCardBrush}" BorderBrush="{StaticResource DividerBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="10,6">
+                <Grid>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Loc.PollingRateTesterMain}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                            <TextBlock Text="{Binding MeasuredPollingHzText}" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" Typography.NumeralAlignment="Tabular" />
+                            <TextBlock Text="{Binding PeakPollingHzText}" FontSize="12"
+                                       Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+                    <Button HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Style="{StaticResource FlatActionButtonStyle}" Command="{Binding TogglePollingTestCommand}">
+                        <Button.Content>
+                            <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="{Binding DataContext.Loc.TestHzBtn, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsPollingTestActive}" Value="True">
+                                                <Setter Property="Text" Value="{Binding DataContext.Loc.StopBtn, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Button.Content>
+                    </Button>
+                </Grid>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

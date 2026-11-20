@@ -1,0 +1,18 @@
+{
+  "ProtocolId": "example-paw3395-mouse",
+  "DisplayName": "Example PAW3395 Wireless",
+  "VendorIdHex": "0x1D57",
+  "ProductIdHex": "0xFA60",
+  "UsagePageHex": "0xFF02",
+  "UseFeatureReports": true,
+  "ReportLength": 17,
+  "ReportId": 8,
+  "Checksum": "CompX55",
+  "BatteryQueryHex": "08 04 00 00 00 00",
+  "BatteryPercentOffset": 6,
+  "ChargingFlagOffset": 7,
+  "VoltageHighOffset": 8,
+  "VoltageLowOffset": 9,
+  "SupportedPollingRatesHz": [125, 250, 500, 1000, 2000, 4000],
+  "MaxDpi": 26000
+}

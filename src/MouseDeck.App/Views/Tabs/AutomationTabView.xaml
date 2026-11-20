@@ -1,0 +1,126 @@
+<UserControl x:Class="MouseDeck.App.Views.Tabs.AutomationTabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="16,8,16,8">
+
+            <!-- 1. Auto Profile Rules (Single-row rule creator + desktop baseline) -->
+            <Grid Height="28" Margin="0,0,0,6">
+                <TextBlock Text="{Binding Loc.DefaultProfileHeader}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                <ComboBox Width="176" HorizontalAlignment="Right" ItemsSource="{Binding Profiles}"
+                          DisplayMemberPath="Name" SelectedValuePath="Id"
+                          SelectedValue="{Binding DefaultDesktopProfileId, Mode=TwoWay}" />
+            </Grid>
+
+            <!-- Single-row Process Rule Adder: [exe name] [...] [Profile] [+] -->
+            <Grid Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="108" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid Grid.Column="0" Margin="0,0,4,0">
+                    <TextBox x:Name="ExeBox" Text="{Binding NewRuleProcessName, UpdateSourceTrigger=PropertyChanged}"
+                             FontFamily="{StaticResource MonoFontFamily}" FontSize="12" />
+                    <TextBlock Text="{Binding Loc.ProcessPlaceholder}" FontFamily="{StaticResource MonoFontFamily}" FontSize="12"
+                               Foreground="{StaticResource TextMutedBrush}" Margin="12,0,0,0"
+                               VerticalAlignment="Center" IsHitTestVisible="False"
+                               Visibility="{Binding Text, ElementName=ExeBox, Converter={StaticResource NullToVis}, ConverterParameter=Invert}" />
+                </Grid>
+                <Button Grid.Column="1" Content="&#xE8E5;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                        Style="{StaticResource FlatActionButtonStyle}" Width="28" Padding="0" Margin="0,0,4,0"
+                        ToolTip="{Binding Loc.BrowseExeTooltip}" Command="{Binding BrowseExecutableCommand}" />
+                <ComboBox Grid.Column="2" Margin="0,0,4,0" ItemsSource="{Binding Profiles}"
+                          DisplayMemberPath="Name" SelectedValuePath="Id"
+                          SelectedValue="{Binding NewRuleProfileId, Mode=TwoWay}" />
+                <Button Grid.Column="3" Content="+" Style="{StaticResource PrimaryWhiteButtonStyle}" Width="28" Padding="0"
+                        ToolTip="{Binding Loc.AddRuleTooltip}" Command="{Binding AddProcessRuleCommand}" />
+            </Grid>
+
+            <ItemsControl ItemsSource="{Binding ProcessRules}" Margin="0,0,0,4">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{StaticResource SurfaceCardBrush}" BorderBrush="{StaticResource DividerBrush}"
+                                BorderThickness="1" CornerRadius="6" Padding="8,2" Margin="0,0,0,4">
+                            <Grid Height="20">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding ProcessName}" FontSize="12" FontFamily="{StaticResource MonoFontFamily}"
+                                           Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{Binding ProfileName}" FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="8,0" />
+                                <Button Grid.Column="2" Content="&#xE711;" Style="{StaticResource HeaderIconButtonStyle}" Width="20" Height="20" FontSize="9"
+                                        Command="{Binding DataContext.DeleteProcessRuleCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding Id}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border Height="1" Background="{StaticResource DividerBrush}" Margin="0,0,0,6" />
+
+            <!-- 2. Global Hotkeys (Styled as Compact Keycaps) -->
+            <ItemsControl ItemsSource="{Binding Hotkeys}" Margin="0,0,0,2">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Height="26" Margin="0,0,0,4">
+                            <TextBlock Text="{Binding Label}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                            <TextBox HorizontalAlignment="Right" Width="108" IsReadOnly="True"
+                                     Style="{StaticResource KeycapTextBoxStyle}"
+                                     Text="{Binding DisplayText, Mode=OneWay}" Tag="{Binding Action}"
+                                     ToolTip="{Binding DataContext.Loc.HotkeyBoxTooltip, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                     PreviewKeyDown="OnHotkeyBoxPreviewKeyDown"
+                                     GotFocus="OnHotkeyBoxGotFocus"
+                                     LostFocus="OnHotkeyBoxLostFocus" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border Height="1" Background="{StaticResource DividerBrush}" Margin="0,2,0,6" />
+
+            <!-- 3. System & Tray Preferences -->
+            <Grid Height="24" Margin="0,0,0,2">
+                <TextBlock Text="{Binding Loc.StartWithWindowsHeader}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                <CheckBox IsChecked="{Binding AutoStartEnabled, Mode=TwoWay}" Style="{StaticResource MonochromeSwitchStyle}" HorizontalAlignment="Right" />
+            </Grid>
+
+            <Grid Height="24" Margin="0,0,0,2">
+                <TextBlock FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular">
+                    <Run Text="{Binding Loc.LowBatteryAlertPrefix, Mode=OneWay}" /><Run Text="{Binding LowBatteryThresholdPercent, Mode=OneWay}" /><Run Text="%" />
+                </TextBlock>
+                <CheckBox IsChecked="{Binding LowBatteryAlertEnabled, Mode=TwoWay}" Style="{StaticResource MonochromeSwitchStyle}" HorizontalAlignment="Right" />
+            </Grid>
+
+            <Grid Height="24" Margin="0,0,0,2">
+                <TextBlock Text="{Binding Loc.FullBatteryAlertHeader}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                <CheckBox IsChecked="{Binding FullBatteryAlertEnabled, Mode=TwoWay}" Style="{StaticResource MonochromeSwitchStyle}" HorizontalAlignment="Right" />
+            </Grid>
+
+            <Grid Height="24" Margin="0,0,0,4">
+                <TextBlock Text="{Binding Loc.UnlockOnStartupHeader}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                <CheckBox IsChecked="{Binding UnlockEditingOnStartup, Mode=TwoWay}" Style="{StaticResource MonochromeSwitchStyle}" HorizontalAlignment="Right" />
+            </Grid>
+
+            <Grid Height="28" Margin="0,0,0,4">
+                <TextBlock Text="{Binding Loc.BatteryIndicatorHeader}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                <ComboBox Width="184" HorizontalAlignment="Right"
+                          ItemsSource="{Binding TrayStyleChoices}" DisplayMemberPath="DisplayName" SelectedValuePath="Value"
+                          SelectedValue="{Binding SelectedTrayIconStyle, Mode=TwoWay}" />
+            </Grid>
+
+            <Grid Height="28">
+                <TextBlock Text="{Binding Loc.WindowSurfaceHeader}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                <ComboBox Width="184" HorizontalAlignment="Right"
+                          ItemsSource="{Binding BackdropStyleChoices}" DisplayMemberPath="DisplayName" SelectedValuePath="Value"
+                          SelectedValue="{Binding SelectedBackdropStyle, Mode=TwoWay}" />
+            </Grid>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
